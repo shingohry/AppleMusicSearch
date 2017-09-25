@@ -45,17 +45,30 @@ class APIClient {
             forHTTPHeaderField: "Authorization")
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error -> Void in
-            if let error = error {
-                print("URL Session Task Failed: %@", error.localizedDescription);
+            guard error == nil else {
+                print("URL Session Task Failed: %@", error!.localizedDescription);
                 completionOnMain(nil)
-            } else {
-                guard let searchResult = try? JSONDecoder().decode(SearchResult.self, from: data!) else {
-                    print("JSON Decode Failed");
-                    completionOnMain(nil)
-                    return
-                }
-                completionOnMain(searchResult)
+                return
             }
+            
+            guard let response = response as? HTTPURLResponse else {
+                print("invalid response");
+                completionOnMain(nil)
+                return
+            }
+            
+            guard (200..<300).contains(response.statusCode) else {
+                print("unacceptable StatusCode:\(response.statusCode)");
+                completionOnMain(nil)
+                return
+            }
+            
+            guard let searchResult = try? JSONDecoder().decode(SearchResult.self, from: data!) else {
+                print("JSON Decode Failed");
+                completionOnMain(nil)
+                return
+            }
+            completionOnMain(searchResult)
         }
         task.resume()
     }
